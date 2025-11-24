@@ -1,1 +1,0 @@
-Due to the large size of the structure file, it cannot be uploaded as a single file. Therefore, it has been split into three parts: train_1.traj, train_2.traj, and train_3.traj. When using the data, combine these three files together.
