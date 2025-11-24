@@ -1,0 +1,92 @@
+#...
+#...
+#...
+
+# ---------- Initialize Simulation --------------------------------------------#
+clear
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+#------------------------------------------------------------------------------#
+
+
+# ---------- Create Atomistic Structure ---------------------------------------#
+include           data.mod
+
+variable          runsteps equal 10000
+#------------------------------------------------------------------------------#
+
+
+# ---------- Define Interatomic Potential -------------------------------------#
+include         pot.mod
+#fix             qeqReax all qeq/reax 1 0.0 10.0 1e-6 reax/c #param.qeq
+
+neighbor        2.0 bin
+neigh_modify    every 10 delay 0 check no
+
+# make Ti interstitial atoms
+#region          region_3 block INF INF INF INF 3.5 13.5
+#create_atoms    1 random 4 12378 region_3 overlap 0.5 maxtry 5000
+
+#region          region_1 block INF INF INF INF INF 3.5
+#region          region_2 block INF INF INF INF 3.5 INF
+
+#group           atom_o type 2
+#group           atom_ti type 1
+#group           atom_bulk region region_1
+#group           atom_surface region region_2
+#group           atom_o_sur intersect atom_o atom_surface
+
+# make oxygen vacancy randomly
+#delete_atoms    random count 3 no atom_o_sur NULL 462856 compress yes
+
+#delete_atoms    overlap 0.25 all all compress yes
+#------------------------------------------------------------------------------#
+
+
+# ---------- Define Output & Computation --------------------------------------#
+variable        dt_timestep equal 0.001 #0.2
+
+thermo              1
+thermo_style        custom step temp press atoms vol density pe ke etotal enthalpy lx ly lz
+
+#fix                 xx all momentum 1 linear 1 1 1 angular
+timestep            ${dt_timestep}
+#------------------------------------------------------------------------------#
+
+
+# ----------------------------- Minic bulk state ----------------------------- #
+#velocity            atom_bulk set 0.0 0.0 0.0
+#fix                 fix_bulk atom_bulk setforce 0.0 0.0 0.0
+# ---------------------------------------------------------------------------- #
+
+
+# ------------------------- Minimize interstitial Ti ------------------------- #
+dump                minimize all custom 100 dump.minimize id type x y z element
+dump_modify         minimize element O H sort id
+
+min_style       fire
+minimize        1.0e-15 1.0e-15 50000 50000
+
+undump              minimize
+# ---------------------------------------------------------------------------- #
+
+#write_data          opt.data
+# ----------- Running MD ------------------------------------------------------#
+reset_timestep      0
+
+include             temp.mod
+dump                global all custom 100 dump.nvt id type x y z fx fy fz element
+dump_modify         global element O H sort id
+
+
+velocity            all create ${T} 825578 dist gaussian
+
+fix                 runMD all nvt temp ${T} ${T} $(100.0*dt)
+run                 1000000 #${runsteps}
+
+#fix                 fix1 all npt temp 1 100 $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#run                 10000
+#------------------------------------------------------------------------------#
+
