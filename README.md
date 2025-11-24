@@ -1,0 +1,1 @@
+This database serves as supporting documentation for the article “Resolving Why Nuclear Quantum Effects Suppress Proton Diffusion in Water Nanodroplets,” containing force field training files, force field files, submission files for dynamics simulations, MOV files, and more.
